@@ -1,0 +1,36 @@
+name: Autograding Tests
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  run-autograding-tests:
+    runs-on: ubuntu-latest
+    if: github.event.head_commit.message == 'einde examen'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: setup env
+      run: |
+        mkdir ~/.aws
+        echo -e "[default]\nregion = us-east-1" > ~/.aws/config
+        cp creds.txt ~/.aws/credentials
+    - name: vpc-test
+      id: vpc-test
+      uses: classroom-resources/autograding-io-grader@v1
+      with:
+        test-name: vpc test
+        setup-command: cd .github/aws-autograde && npm i
+        command: node .github/aws-autograde/vpc.js
+        input: ''
+        expected-output: correct
+        comparison-method: exact
+        timeout: 10
+        max-score: 10
+    - name: Autograding Reporter
+      uses: classroom-resources/autograding-grading-reporter@v1
+      env:
+        VPC-TEST_RESULTS: "${{steps.vpc-test.outputs.result}}"
+      with:
+        runners: vpc-test
