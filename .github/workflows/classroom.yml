@@ -1,3 +1,5 @@
+# This workflow automatically runs the AWS autograding tests when code
+# is pushed to the main branch.
 name: Autograding Tests
 on:
   push:
@@ -7,16 +9,20 @@ on:
 jobs:
   run-autograding-tests:
     runs-on: ubuntu-latest
+    # Only run the autograding when the latest commit message is exactly
+    # "einde examen".
     if: github.event.head_commit.message == 'einde examen'
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+    # setup env is needed for this specific assignment because we use the AWS CLI in autograding scripts
     - name: setup env
       run: |
         mkdir ~/.aws
         echo -e "[default]\nregion = us-east-1" > ~/.aws/config
         cp creds.txt ~/.aws/credentials
     - name: vpc-test
+      # the id property value will be used later in the Autograding reporter
       id: vpc-test
       uses: classroom-resources/autograding-io-grader@v1
       with:
@@ -28,6 +34,29 @@ jobs:
         comparison-method: exact
         timeout: 10
         max-score: 10
+    # Send the test result(s) to the GitHub Classroom grading reporter. 
+    # The result of each autograding step is exposed through its "id". 
+    # For example: 
+    # id: vpc-test 
+    # 
+    # produces: 
+    # 
+    # steps.vpc-test.outputs.result 
+    # 
+    # The environment variable name can be chosen freely, but the value 
+    # must contain the result of the corresponding autograding step. 
+    # When there are MULTIPLE tests, add one environment variable for 
+    # each test and list all test IDs in "runners". 
+    # Example:
+    # env: 
+    #   VPC-TEST_RESULTS: "${{steps.vpc-test.outputs.result}}"
+    #   EC2-TEST_RESULTS: "${{steps.ec2-test.outputs.result}}" 
+    #   RDS-TEST_RESULTS: "${{steps.rds-test.outputs.result}}" 
+    #
+    # with: 
+    #   runners: vpc-test,ec2-test,rds-test 
+    # 
+    # The IDs in "runners" must match the IDs of the corresponding autograding steps.
     - name: Autograding Reporter
       uses: classroom-resources/autograding-grading-reporter@v1
       env:
